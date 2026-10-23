@@ -18,4 +18,8 @@ Contexto en `ContextoClaude/contexto-proyecto.md` (git-ignored) y en
   - la foto es opcional: `assets/img/foto.webp` (cuadrada); si no existe, no se ve nada.
 - **Comprobar:** `node ~/.claude/skills/cinematic-web/scripts/film.mjs index.html --root .` (y lo mismo
   con `en/index.html`): escritorio, móvil y movimiento reducido, sin errores ni desbordamiento.
-- **Git lo maneja Adrián** (commits, push, merge). Habla en español con él.
+- **Un solo repo para los dos idiomas** y con este nombre (es el que publica en la raíz): no
+  renombrarlo ni separarlo.
+- **En local:** vista previa `portfolio` de `../.claude/launch.json` → http://127.0.0.1:9004.
+- **Git lo maneja Adrián** (commits, push, merge), sin la línea `Co-Authored-By: Claude`. Habla en
+  español con él.
