@@ -1,0 +1,45 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"   # weekly
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  static:
+    name: Strict CSP and no third-party resources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Every page declares the strict CSP
+        run: |
+          fail=0
+          for f in $(git ls-files '*.html'); do
+            grep -q "http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; script-src 'self'; style-src 'self'" "$f" || { echo "::error file=$f::missing or weakened CSP"; fail=1; }
+          done
+          exit $fail
+      - name: No external scripts, stylesheets or fonts, no inline scripts or styles
+        run: |
+          fail=0
+          if git grep -nE '<script[^>]+src="(https?:)?//' -- '*.html'; then echo "::error::external script"; fail=1; fi
+          if git grep -nE '<link[^>]+rel="stylesheet"[^>]+href="(https?:)?//' -- '*.html'; then echo "::error::external stylesheet"; fail=1; fi
+          if git grep -nE '<script>|<script type="module">' -- '*.html'; then echo "::error::inline script"; fail=1; fi
+          if git grep -nE ' style="' -- '*.html'; then echo "::error::inline style attribute"; fail=1; fi
+          if git grep -nE 'url\((https?:)?//' -- '*.css'; then echo "::error::external url() in CSS"; fail=1; fi
+          exit $fail
