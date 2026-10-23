@@ -27,7 +27,7 @@ automatizaciones con IA.
 | `assets/img/` | Capturas del proyecto y, opcionalmente, `foto.webp` |
 | `assets/fonts/` | Geist, autoalojada (SIL OFL) |
 
-Para verlo en local: `python -m http.server 9006` en esta carpeta y abrir http://127.0.0.1:9006.
+Para verlo en local: `python -m http.server 9004` en esta carpeta y abrir http://127.0.0.1:9004.
 
 ## Licencia
 
