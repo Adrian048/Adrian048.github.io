@@ -1,0 +1,26 @@
+/* Page transitions between pages of the same site, with the View Transitions API: CSS only, no
+   script, no router. Load this file on BOTH pages. Browsers without support just navigate.
+
+   Shared element: give the same name to the element on both pages and it flies from one to the other
+   (the can in the list becomes the can on the product page):
+     list page:    <img class="vt-hero" …>          product page:  <img class="vt-hero" …>
+     .vt-hero { view-transition-name: hero; }       (one element per name and page) */
+
+@view-transition { navigation: auto; }
+
+/* default: the new page rises in from the bottom edge while the old one sinks a little and dims */
+::view-transition-old(root) {
+  animation: 600ms cubic-bezier(0.77, 0, 0.175, 1) both cine-vt-out;
+}
+::view-transition-new(root) {
+  animation: 700ms cubic-bezier(0.77, 0, 0.175, 1) both cine-vt-in;
+}
+@keyframes cine-vt-out { to { transform: translateY(-6%) scale(0.98); opacity: 0.4; } }
+@keyframes cine-vt-in { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* shared elements move on the same curve */
+::view-transition-group(*) { animation-duration: 700ms; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(*) { animation: none; }
+}

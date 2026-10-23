@@ -1,0 +1,257 @@
+/* cinematic-web kit: base styles for the effects. Reads the page's tokens when they exist
+   (--ground, --ink, --muted, --accent); set --cine-* to override. No external resources. */
+
+:root {
+  --cine-bg: var(--ground, #07080b);
+  --cine-ink: var(--ink, #eef1f6);
+  --cine-muted: var(--muted, #8b93a3);
+  --cine-accent: var(--accent, #4d8dff);
+  --cine-c1: var(--cine-accent);
+  --cine-c2: color-mix(in oklab, var(--cine-accent) 45%, white);
+  --cine-c3: color-mix(in oklab, var(--cine-accent) 55%, #22d3ee);
+  --cine-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --cine-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --cine-enter: 900ms;
+}
+
+/* page colours driven by [data-cine-theme] sections (theme.js); registered so they ease */
+@property --theme-ground { syntax: '<color>'; inherits: true; initial-value: #07080b; }
+@property --theme-ink { syntax: '<color>'; inherits: true; initial-value: #eef1f6; }
+@property --theme-accent { syntax: '<color>'; inherits: true; initial-value: #4d8dff; }
+:root { transition: --theme-ground 900ms var(--cine-ease), --theme-ink 900ms var(--cine-ease), --theme-accent 900ms var(--cine-ease); }
+
+.cine-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* ── WebGL hosts ─────────────────────────────────────────────────────────── */
+
+.cine-shader, .cine-points { position: relative; isolation: isolate; }
+.cine-gl {
+  position: absolute; inset: 0; z-index: -1;
+  width: 100%; height: 100%; display: block; pointer-events: none;
+  opacity: 0; transition: opacity 1.2s var(--cine-ease);
+}
+.is-gl > .cine-gl { opacity: 1; }
+/* Without WebGL (or before it starts) the host still has light in it. */
+.cine-shader:not(.is-gl) {
+  background:
+    radial-gradient(60% 50% at 70% 40%, color-mix(in oklab, var(--cine-c1) 35%, transparent), transparent 70%),
+    radial-gradient(40% 40% at 25% 70%, color-mix(in oklab, var(--cine-c3) 25%, transparent), transparent 70%),
+    var(--cine-bg);
+}
+.cine-shader.is-gl { background: var(--cine-bg); }
+/* clouds: transparent, drawn over the host's content (a photo below shows through as they clear) */
+.cine-gl--over { z-index: 2; }
+.cine-shader[data-cine-shader="clouds"], .cine-shader[data-cine-shader="clouds"].is-gl { background: none; }
+.cine-points:not(.is-gl) {
+  background: radial-gradient(35% 45% at 50% 50%, color-mix(in oklab, var(--cine-c1) 22%, transparent), transparent 70%);
+}
+
+/* ── Footage driven by scroll (sequence.js) ──────────────────────────────── */
+
+.cine-sequence { position: relative; overflow: clip; }
+.cine-sequence__media { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+/* the <img> inside is the poster: what shows without script, before loading and under reduced motion */
+.cine-sequence > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cine-sequence.is-ready > img { visibility: hidden; }
+/* outside a running scene (no script, reduced motion) it is a picture with a height of its own */
+.cine-scene:not(.is-live) .cine-sequence { position: relative; inset: auto; min-height: 70svh; }
+
+/* ── Entrances ───────────────────────────────────────────────────────────── */
+
+[data-cine-reveal] {
+  transition:
+    opacity var(--cine-enter) var(--cine-ease),
+    transform var(--cine-enter) var(--cine-ease),
+    clip-path calc(var(--cine-enter) * 1.25) var(--cine-ease),
+    filter var(--cine-enter) var(--cine-ease);
+  transition-delay: calc(min(var(--i, 0), 10) * 75ms);
+}
+.js [data-cine-reveal]:not(.is-in) { opacity: 0; transform: translateY(28px); }
+.js [data-cine-reveal="mask"]:not(.is-in) { opacity: 1; transform: none; clip-path: inset(0 0 100% 0); }
+.js [data-cine-reveal="scale"]:not(.is-in) { transform: scale(0.94); }
+.js [data-cine-reveal="blur"]:not(.is-in) { filter: blur(14px); transform: translateY(14px); }
+.js [data-cine-reveal="clip"]:not(.is-in) {
+  opacity: 1; transform: scale(1.08); clip-path: inset(14% 18% 14% 18% round 28px);
+}
+[data-cine-reveal="mask"], [data-cine-reveal="clip"] { clip-path: inset(0 0 0 0 round 0); }
+
+/* ── Split text ──────────────────────────────────────────────────────────── */
+
+.cine-wm { display: inline-block; vertical-align: top; }
+.cine-w { display: inline-block; }
+[data-cine-text="rise"] .cine-wm, [data-cine-text="chars"] .cine-wm {
+  /* room above for accents on capitals (Á É Ó) and below for descenders, so the mask clips neither */
+  overflow: clip; padding-block: 0.22em 0.12em; margin-block: -0.22em -0.12em;
+}
+[data-cine-text="rise"] .cine-w, [data-cine-text="chars"] .cine-w {
+  transition: transform 1s var(--cine-ease), opacity 1s var(--cine-ease);
+  transition-delay: calc(min(var(--i), 28) * 45ms);
+}
+[data-cine-text="chars"] .cine-w { transition-delay: calc(min(var(--i), 60) * 18ms); }
+.js [data-cine-text="rise"]:not(.is-in) .cine-w,
+.js [data-cine-text="chars"]:not(.is-in) .cine-w { transform: translateY(105%); opacity: 0; }
+
+/* Words light up as the paragraph crosses the screen: fully lit by the time it is a little above centre. */
+[data-cine-text="scrub"] { --r: clamp(0, (var(--pv, 1) - 0.12) / 0.42, 1); }
+[data-cine-text="scrub"] .cine-w {
+  opacity: calc(0.16 + 0.84 * clamp(0, var(--r) * (var(--n) + 2) - var(--i), 1));
+}
+
+/* ── Under the hand ──────────────────────────────────────────────────────── */
+
+[data-cine-tilt] {
+  position: relative;
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+}
+.cine-glare::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(420px circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.13), transparent 45%);
+  opacity: var(--go, 0);
+}
+[data-cine-magnetic] { translate: var(--mx, 0px) var(--my, 0px); }
+
+.cine-spot { position: relative; isolation: isolate; }
+.cine-spot::before, .cine-spot::after {
+  content: ""; position: absolute; pointer-events: none; border-radius: inherit;
+  opacity: 0; transition: opacity 400ms var(--cine-ease);
+}
+/* the lit border */
+.cine-spot::before {
+  inset: 0; padding: 1px; z-index: 1;
+  background: radial-gradient(260px circle at var(--sx, 50%) var(--sy, 50%),
+    color-mix(in oklab, var(--cine-accent) 85%, white), transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* the light on the surface */
+.cine-spot::after {
+  inset: 0; z-index: -1;
+  background: radial-gradient(420px circle at var(--sx, 50%) var(--sy, 50%),
+    color-mix(in oklab, var(--cine-accent) 12%, transparent), transparent 60%);
+}
+.is-lit .cine-spot::before, .is-lit .cine-spot::after { opacity: 1; }
+
+/* ── Marquee ─────────────────────────────────────────────────────────────── */
+
+[data-cine-marquee] {
+  display: flex; overflow: clip;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.cine-track { display: flex; flex: none; align-items: center; gap: var(--cine-gap, 3.5rem); padding-inline-end: var(--cine-gap, 3.5rem); }
+[data-cine-marquee].is-running .cine-track { animation: cine-marquee var(--cine-speed, 40s) linear infinite; }
+[data-cine-marquee].is-running:hover .cine-track { animation-play-state: paused; }
+@keyframes cine-marquee { to { transform: translateX(-100%); } }
+
+/* ── Reduced motion: everything is in place, nothing moves ──────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-cine-reveal], .cine-w, .cine-gl { transition: none !important; }
+  .js [data-cine-reveal]:not(.is-in),
+  .js [data-cine-text]:not(.is-in) .cine-w { opacity: 1; transform: none; clip-path: none; filter: none; }
+  [data-cine-tilt] { transform: none; }
+  :root { transition: none; }
+}
+
+/* ── Cursor (cursor.js) ──────────────────────────────────────────────────── */
+
+.has-cine-cursor, .has-cine-cursor a, .has-cine-cursor button, .has-cine-cursor [role="button"], .has-cine-cursor summary, .has-cine-cursor label { cursor: none; }
+.has-cine-cursor input, .has-cine-cursor textarea, .has-cine-cursor select { cursor: auto; }
+.cine-cursor { position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 300ms ease; }
+.cine-cursor.is-on { opacity: 1; }
+.cine-cursor.is-native { opacity: 0; }
+.cine-cursor__dot, .cine-cursor__ring { position: absolute; left: 0; top: 0; border-radius: 50%; }
+.cine-cursor__dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: var(--cine-ink); }
+.cine-cursor__ring {
+  width: 36px; height: 36px; margin: -18px 0 0 -18px; display: grid; place-items: center;
+  border: 1.5px solid color-mix(in oklab, var(--cine-ink) 55%, transparent);
+  transition: width 320ms var(--cine-ease), height 320ms var(--cine-ease), margin 320ms var(--cine-ease), background-color 320ms var(--cine-ease), border-color 320ms var(--cine-ease);
+}
+.cine-cursor.is-hover .cine-cursor__ring { width: 64px; height: 64px; margin: -32px 0 0 -32px; border-color: var(--cine-accent); background: color-mix(in oklab, var(--cine-accent) 14%, transparent); }
+.cine-cursor.has-label .cine-cursor__ring { width: 88px; height: 88px; margin: -44px 0 0 -44px; background: var(--cine-accent); border-color: var(--cine-accent); }
+.cine-cursor.is-down .cine-cursor__ring { transform-origin: center; scale: 0.85; }
+.cine-cursor__label { font: 600 0.8rem/1 var(--font-text, system-ui), sans-serif; color: #fff; opacity: 0; transition: opacity 200ms ease; }
+.cine-cursor.has-label .cine-cursor__label { opacity: 1; }
+
+/* image trail */
+[data-cine-trail] { position: relative; overflow: clip; }
+.cine-trail__img { position: absolute; width: clamp(120px, 14vw, 220px); aspect-ratio: 4 / 5; object-fit: cover; border-radius: 6px; pointer-events: none; z-index: 2; }
+
+/* x-ray reveal */
+[data-cine-xray] { position: relative; overflow: clip; --xr: 0px; }
+[data-cine-xray] > * { display: block; width: 100%; }
+.cine-xray__top {
+  position: absolute; inset: 0; height: 100%; object-fit: cover;
+  -webkit-mask-image: radial-gradient(circle var(--xr) at var(--mx, 50%) var(--my, 50%), #000 98%, transparent 100%);
+  mask-image: radial-gradient(circle var(--xr) at var(--mx, 50%) var(--my, 50%), #000 98%, transparent 100%);
+}
+
+/* ── Text effects (textfx.js) ────────────────────────────────────────────── */
+
+.cine-imgtext {
+  color: transparent; -webkit-background-clip: text; background-clip: text;
+  background-size: cover; background-position: 50% calc(30% + var(--pv, 0.5) * 40%);
+  transform: scale(calc(0.94 + var(--pv, 0.5) * 0.12)); transform-origin: 50% 60%;
+}
+[data-cine-scramble] { font-variant-numeric: tabular-nums; }
+
+/* ── Intro (intro.js) ────────────────────────────────────────────────────── */
+
+@property --cine-hole { syntax: '<length-percentage>'; inherits: false; initial-value: 0%; }
+.cine-intro { display: none; }
+.js .cine-intro {
+  position: fixed; inset: 0; z-index: 9000; display: grid; place-content: center; justify-items: center; gap: 1rem;
+  background: var(--cine-bg); color: var(--cine-ink);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--cine-hole), #000 calc(var(--cine-hole) + 1px));
+  mask-image: radial-gradient(circle at 50% 50%, transparent var(--cine-hole), #000 calc(var(--cine-hole) + 1px));
+  transition: --cine-hole 1s cubic-bezier(0.77, 0, 0.175, 1);
+}
+.cine-intro.is-opening { --cine-hole: 150%; pointer-events: none; }
+.cine-intro__count { font: 600 clamp(4rem, 14vw, 11rem)/1 var(--font-display, system-ui), sans-serif; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
+.cine-intro-on { overflow: hidden; }
+
+/* ── Drift (drift.js) ────────────────────────────────────────────────────── */
+
+[data-cine-drift] { position: relative; isolation: isolate; }
+.cine-drift { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+
+/* ── Galleries (gallery.js + CSS) ────────────────────────────────────────── */
+
+.cine-coverflow { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: 1rem 0; outline: none; }
+.cine-coverflow__item { flex: none; width: min(70vw, 460px); margin: 0; scroll-snap-align: center; }
+.cine-coverflow__item img { width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; display: block; border-radius: 10px; }
+/* the side pictures are moved with transforms, which still count as page width on phones: clip them */
+.cine-coverflow.is-live { display: grid; overflow-x: clip; overflow-y: visible; perspective: 1400px; place-items: center; min-height: min(62vw, 520px); }
+.cine-coverflow.is-live .cine-coverflow__item {
+  grid-area: 1 / 1; cursor: pointer;
+  transform: translateX(calc(var(--k) * 58%)) translateZ(calc(var(--ak) * -220px)) rotateY(calc(clamp(-1, var(--k), 1) * -42deg));
+  opacity: calc(1 - min(var(--ak), 3) * 0.22);
+  z-index: calc(20 - var(--ak));
+  transition: transform 700ms var(--cine-ease), opacity 700ms var(--cine-ease);
+}
+.cine-coverflow.is-live { user-select: none; -webkit-user-select: none; }
+.cine-coverflow.is-live img { -webkit-user-drag: none; pointer-events: none; }
+.cine-coverflow.is-live .cine-coverflow__item:not(.is-active) figcaption { opacity: 0; }
+.cine-coverflow__item figcaption { margin-top: 0.75rem; transition: opacity 400ms ease; }
+.cine-coverflow:focus-visible { outline: 2px solid var(--cine-accent); outline-offset: 6px; }
+
+.cine-accordion { display: flex; gap: 0.6rem; height: clamp(320px, 52vh, 560px); }
+.cine-accordion > * { position: relative; flex: 1; min-width: 0; overflow: clip; border-radius: 12px; transition: flex-grow 700ms var(--cine-ease); }
+.cine-accordion > * img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cine-accordion > :hover, .cine-accordion > :focus-within { flex-grow: 4; }
+@media (max-width: 700px) { .cine-accordion { flex-direction: column; height: auto; } .cine-accordion > * { min-height: 120px; } .cine-accordion > :hover, .cine-accordion > :focus-within { flex-grow: 1; } }
+
+/* ── Picture distortion (imagefx.js) ─────────────────────────────────────── */
+
+.cine-distort { position: fixed; left: 0; top: 0; z-index: 30; pointer-events: none; opacity: 0; transition: opacity 250ms ease; }
+.cine-distort.is-on { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-coverflow.is-live .cine-coverflow__item, .cine-accordion > * { transition: none; }
+  .cine-imgtext { transform: none; }
+}
